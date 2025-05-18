@@ -954,7 +954,7 @@ class TD3Agent:
 
         last_init = tf.random_uniform_initializer(minval=-0.003, maxval=0.003)
 
-        inputs = layers.Input(shape=(STATE_SIZE))
+        inputs = layers.Input(shape=(STATE_SIZE,))
         normalized_inputs = layers.BatchNormalization()(inputs)
         out1 = layers.Dense(512, activation='relu')(normalized_inputs)
         out2 = layers.Dense(256, activation='relu')(out1)
@@ -975,7 +975,7 @@ class TD3Agent:
 
         return model
 
-    def def get_critic(self, index, model_name='', terminated=False, show_summary=False):
+    def get_critic(self, index, model_name='', terminated=False, show_summary=False):
 
         """
         Function for getting critic model.
@@ -993,16 +993,16 @@ class TD3Agent:
         global TRAINING_INDICATOR, SELECTED_MODEL
 
         stopped = '_terminated' if terminated else ''
-        model_weights_file_name = 'models/' + SELECTED_MODEL + '/parking_agent'+ model_name +'_critic' + stopped + '.h5'
+        model_weights_file_name = 'models/' + SELECTED_MODEL + '/parking_agent'+ model_name +'_critic' + index + stopped + '.h5'
 
         # ----------------------- CONSTRUCTING CRITIC MODEL ----------------------------
 
-        state_input = layers.Input(shape=(STATE_SIZE))
+        state_input = layers.Input(shape=(STATE_SIZE,))
         normalized_state_inputs = layers.BatchNormalization()(state_input)
         state_out1 = layers.Dense(64, activation='relu')(normalized_state_inputs)
         state_out2 = layers.Dense(128, activation='relu')(state_out1)
 
-        action_input = layers.Input(shape=(ACTIONS_SIZE))
+        action_input = layers.Input(shape=(ACTIONS_SIZE,))
         normalized_action_inputs = layers.BatchNormalization()(action_input)
         action_out1 = layers.Dense(64, activation='relu')(normalized_action_inputs)
         action_out2 = layers.Dense(128, activation='relu')(action_out1)
@@ -1011,8 +1011,8 @@ class TD3Agent:
         out1 = layers.Dense(256, activation='relu')(concat)
         out2 = layers.Dense(256, activation='relu')(out1)
         outputs = layers.Dense(1)(out2)
-        model = tf.keras.Model([state_input, action_input], outputs, name = 'Target_Critic_Model' if model_name=='_target' else 'Critic_Model')
-       
+        model1 = tf.keras.Model1([state_input, action_input], outputs, name = 'Target_Critic1_Model' if model_name=='_target' else 'Critic_Model')
+        model2 = tf.keras.Model2([state_input, action_input], outputs, name = 'Target_Critic2_Model' if model_name=='_target' else 'Critic_Model')
         # ----------------------- LOADING STORED WEIGHTS IF ENABLED ----------------------------
 
         if TRAINING_INDICATOR == 1 and os.path.exists(model_weights_file_name):
@@ -1211,7 +1211,7 @@ class ReplayBuffer:
 
                 if self.state_buffer.shape[0] < buffer_capacity:
                     self.buffer_capacity = buffer_capacity
-                    self.buffer_counter = state_buffer.shape[0]-1
+                    self.buffer_counter = self.state_buffer.shape[0]-1
                 else:
                     self.buffer_capacity = self.state_buffer.shape[0]
                     self.buffer_counter = 0
@@ -1648,13 +1648,7 @@ if __name__ == '__main__':
                     replay_buffer.learn()
 
                     # -------------------- UPDATING TARGET MODELS -------------------------
-                    record_range = min(replay_buffer.buffer_counter, replay_buffer.buffer_capacity)
-                    batch_indices = np.random.choice(record_range, BATCH_SIZE)
-                    state_batch      = tf.convert_to_tensor(replay_buffer.state_buffer[batch_indices])
-                    action_batch     = tf.convert_to_tensor(replay_buffer.action_buffer[batch_indices])
-                    reward_batch     = tf.cast(tf.convert_to_tensor(replay_buffer.reward_buffer[batch_indices]), tf.float32)
-                    next_state_batch = tf.convert_to_tensor(replay_buffer.next_state_buffer[batch_indices])
-                    replay_buffer.update(state_batch, action_batch, reward_batch, next_state_batch)
+                    #learn에 작성됨됨
                     # ------------ EPISODE TERMINATION / TRANSITION -------------
                     if done:
                         break
@@ -1688,11 +1682,12 @@ if __name__ == '__main__':
             # ----------------------- SAVING MODELS ----------------------------
 
             actor_model.save_weights('models/' + SELECTED_MODEL + '/parking_agent_actor.h5')
-            critic_model.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic.h5')
+            critic_model1.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic1.h5')
+            critic_model2.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic2.h5')
 
             target_actor.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_actor.h5')
-            target_critic.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic.h5')
-
+            target_critic1.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic1.h5')
+            target_critic2.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic2.h5')
 
             # ----------------------- SAVING TRAINING DATA ----------------------------
 
@@ -1711,19 +1706,23 @@ if __name__ == '__main__':
                 # ----------------------- SAVING TERMINATED MODELS IN OLD ONES ----------------------------
 
                 actor_model.save_weights('models/' + SELECTED_MODEL + '/parking_agent_actor.h5')
-                critic_model.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic.h5')
+                critic_model1.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic1.h5')
+                critic_model2.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic2.h5')
 
                 target_actor.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_actor.h5')
-                target_critic.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic.h5')
+                target_critic1.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic1.h5')
+                target_critic2.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic2.h5')
 
             elif TRAINING_INDICATOR == 2:
 
                 # ----------------------- SAVING TERMINATED MODELS ----------------------------.
 
                 actor_model.save_weights('models/' + SELECTED_MODEL + '/parking_agent_actor_terminated.h5')
-                critic_model.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic_terminated.h5')
+                critic_model1.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic1_terminated.h5')
+                critic_model2.save_weights('models/' + SELECTED_MODEL + '/parking_agent_critic2_terminated.h5')
 
                 target_actor.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_actor_terminated.h5')
-                target_critic.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic_terminated.h5')
+                target_critic1.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic1_terminated.h5')
+                target_critic2.save_weights('models/' + SELECTED_MODEL + '/parking_agent_target_critic2_terminated.h5')
 
             print(e)
