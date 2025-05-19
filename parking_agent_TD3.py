@@ -18,7 +18,7 @@ from tensorflow.keras import layers
 # IMPORTING CARLA SIMULATOR
 # ---------------------------------------------------------------------------------------------------
 try:
-    sys.path.append(glob.glob('../carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -993,7 +993,7 @@ class TD3Agent:
         global TRAINING_INDICATOR, SELECTED_MODEL
 
         stopped = '_terminated' if terminated else ''
-        model_weights_file_name = 'models/' + SELECTED_MODEL + '/parking_agent'+ model_name +'_critic' + index + stopped + '.h5'
+        model_weights_file_name = 'models/' + SELECTED_MODEL + '/parking_agent'+ model_name +'_critic' + str(index) + stopped + '.h5'
 
         # ----------------------- CONSTRUCTING CRITIC MODEL ----------------------------
 
