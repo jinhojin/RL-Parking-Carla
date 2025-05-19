@@ -1011,8 +1011,8 @@ class TD3Agent:
         out1 = layers.Dense(256, activation='relu')(concat)
         out2 = layers.Dense(256, activation='relu')(out1)
         outputs = layers.Dense(1)(out2)
-        model1 = tf.keras.Model1([state_input, action_input], outputs, name = 'Target_Critic1_Model' if model_name=='_target' else 'Critic_Model')
-        model2 = tf.keras.Model2([state_input, action_input], outputs, name = 'Target_Critic2_Model' if model_name=='_target' else 'Critic_Model')
+        model = tf.keras.Model([state_input, action_input], outputs, name = f"Target_Critic{index}_Model" if model_name=='_target' else f"Critic_Model{index}")
+        
         # ----------------------- LOADING STORED WEIGHTS IF ENABLED ----------------------------
 
         if TRAINING_INDICATOR == 1 and os.path.exists(model_weights_file_name):
