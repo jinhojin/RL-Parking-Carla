@@ -93,13 +93,9 @@ class CarlaEnvironment:
         self.model_3_length = 4.694 
         self.model_3_width = 2.089 
 
-        self.spawning_z_offset = 0.5
+        self.spawning_z_offset = 3.5
 
-        self.parking_map, spectator_transform = self.get_parking_map()
-
-        self.world.get_spectator().set_transform(spectator_transform)
-
-        self.draw_goal()
+        self.episode_count = 0
 
         self.radar_readings = {
                                 'radar_0'  : 100.0,
@@ -112,7 +108,7 @@ class CarlaEnvironment:
                                 'radar_315': 100.0 
                                }
 
-    def get_parking_map(self):
+    def get_parking_map(self, map_index=None):
 
         """
         Function for getting real spots on parking lot from previously catched 
@@ -128,8 +124,17 @@ class CarlaEnvironment:
             - spectator_transform: carla.Transform object with location and rotation of 
                                    spectator camera
         """
+        csv_paths = [
+            FOLDER_PATH + '/parking_map1.csv',
+            FOLDER_PATH + '/parking_map2.csv',
+        ]
 
-        df = pd.read_csv(MAP_CSV_PATH, index_col = ['position'])
+        if map_index is None:
+            selected_csv = random.choice(csv_paths)
+        else:
+            selected_csv = csv_paths[map_index % len(csv_paths)]
+
+        df = pd.read_csv(selected_csv, index_col = ['position'])
         df = df.apply(pd.to_numeric, errors='coerce')
 
         # --------------------------- GOAL PARKING SPOT -----------------------------------
@@ -145,6 +150,7 @@ class CarlaEnvironment:
         goal_rotation = df.loc['goal_orientation','yaw'] # in degrees
 
         goal_parking_spot = carla.Transform(carla.Location(x=goal_center_x, y=goal_center_y), carla.Rotation(yaw=goal_rotation))
+        self.current_map_id = int(df.loc['map_id', 'x'])
 
         # --------------------------- SPECTATOR CAMERA TRANSFORM ------------------------------
 
@@ -364,17 +370,31 @@ class CarlaEnvironment:
         self.actor_list = []
  
         # ------------------------------ SPAWNING AGENT ----------------------------------
+        # map index를 episode마다 번갈아 사용
+        self.parking_map, spectator_transform = self.get_parking_map(map_index=self.episode_count)
+        self.episode_count += 1
+
+        self.world.get_spectator().set_transform(spectator_transform)
+        self.draw_goal()
 
         if spawn_point == None:
 
             if SELECTED_SPAWNING_METHOD == 1 :
-                spawn_point = self.random_spawn('random_entrance')
-
+                if self.current_map_id == 1:
+                    spawn_point = carla.Transform(carla.Location(x=-30, y=-190, z=3.5), carla.Rotation(yaw=random.choice([0.0, 180.0])))
+                else:
+                    spawn_point = self.random_spawn('random_entrance')
             else:
                 if SELECTED_MODEL == 'only_throttle':
-                    spawn_point = carla.Transform(carla.Location(x=17.2, y=-29.7, z=self.spawning_z_offset), carla.Rotation(yaw=random.choice([0.0, 180.0])))
+                    if self.current_map_id == 1:
+                        spawn_point = carla.Transform(carla.Location(x=-30, y=-190, z=3.5), carla.Rotation(yaw=random.choice([0.0, 180.0])))
+                    else:
+                        spawn_point = carla.Transform(carla.Location(x=17.2, y=-29.7, z=0.5), carla.Rotation(yaw=random.choice([0.0, 180.0])))                    
                 else: 
-                    spawn_point = carla.Transform(carla.Location(x=17.2, y=-29.7, z=self.spawning_z_offset), carla.Rotation(yaw=180.0))
+                    if self.current_map_id == 1:
+                        spawn_point = carla.Transform(carla.Location(x=-30, y=-190, z=3.5), carla.Rotation(yaw=180.0))
+                    else:
+                        spawn_point = carla.Transform(carla.Location(x=17.2, y=-29.7, z=0.5), carla.Rotation(yaw=180.0))   
 
         self.vehicle = self.world.spawn_actor(self.model_3, spawn_point)
         self.actor_list.append(self.vehicle)
